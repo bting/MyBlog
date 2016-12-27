@@ -6,24 +6,15 @@
 <link rel = stylesheet type = text/css href = "{{url_for('static', filename = 'style.css')}}">
 </head>
 <body>
-<div class = "header">
-    <h1>Blog</h1>
-    <div class = metanav>
-    {% if not session.logged_in%}
-        <a href="{{url_for('login')}}">log in</a>
-    {% else %}
-        <a href = "{{url_for('logout')}}">log out</a>
-    {% endif %}
-    </div>
-</div>
+    {% include 'header.html' %}
 <div class = "main">
     {% for message in get_flashed_messages() %}
         <div class = flash>{{message}}</div>
     {% endfor %}
-    <div class="content">
+    <div class="content pull-left">
         {% block body %}{% endblock %}
     </div>
-    <div class="sidebar">
+    <div class="sidebar pull-right">
         <div class="category">
             <h5>Categories/目录</h5>
             <ul>
@@ -45,10 +36,6 @@
         </div>
     </div>
 </div>
-<div class = "footer">
-    {% block footer %}
-    &copy; Copyright 2016 by Tingting Bao.
-    {% endblock %}
-</div>
+{% include 'footer.html' %}
 </body>
 </html>
