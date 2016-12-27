@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+	<title>Admin Dashboard</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+	<link rel = stylesheet type = text/css href = "{{url_for('static', filename = 'style.css')}}">
+</head>
+<body>
+	{% include 'header.html' %}
+	<div class="main">
+		<div class="sidebar pull-left">
+			<ul>
+				<li><a href="#">Drafts</a></li>
+				<li><a href="#">Posts</a></li>
+				<li><a href="#">Comments</a></li>
+				<li><a href="#">Categories</a></li>
+				<li><a href="#">Tags</a></li>
+				<li><a href="#">Settings</a></li>
+			</ul>
+		</div>
+		<div class="content pull-right">
+		</div>
+	</div>
+	{% include 'footer.html' %}
+</body>
+</html>

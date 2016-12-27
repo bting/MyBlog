@@ -65,7 +65,7 @@ def show_entries():
 
 @app.route('/admin')
 def administration():
-    pass
+    return render_template('admin_main.html')
 
 
 @app.route('/write', methods=['POST', 'GET'])
