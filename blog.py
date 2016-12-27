@@ -58,23 +58,31 @@ def initdb_command():
 @app.route('/')
 def show_entries():
     db = get_db()
-    cur = db.execute('select id, title, text from entries order by id desc')
+    cur = db.execute("select id, title, text from entries where status='published' order by id desc")
     entries = cur.fetchall()
     return render_template('show_entries.html', entries=entries)
 
 
 @app.route('/admin')
 def administration():
+    if not session.get('logged_in'):
+        abort(401)
     return render_template('admin_main.html')
 
+@app.route('/admin/drafts')
+def draft_list():
+    db = get_db()
+    cur = db.execute("select id, title from entries where status='draft' order by id desc")
+    drafts = cur.fetchall()
+    return render_template('show_drafts.html', drafts=drafts)
 
-@app.route('/write', methods=['POST', 'GET'])
-def add_entry():
+@app.route('/admin/write', methods=['POST', 'GET'])
+def add_draft():
     if not session.get('logged_in'):
         abort(401)
     if request.method == 'POST':
         db = get_db()
-        db.execute('insert into entries (title, text) values (?, ?)',
+        db.execute("insert into entries (title, text, status) values (?, ?, 'draft')",
                    [request.form['title'], request.form['text']])
         db.commit()
         flash('New entry was successfully posted')

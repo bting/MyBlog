@@ -10,7 +10,7 @@
 	<div class="main">
 		<div class="sidebar pull-left">
 			<ul>
-				<li><a href="#">Drafts</a></li>
+				<li><a href="{{url_for('draft_list')}}">Drafts</a></li>
 				<li><a href="#">Posts</a></li>
 				<li><a href="#">Comments</a></li>
 				<li><a href="#">Categories</a></li>
@@ -19,6 +19,7 @@
 			</ul>
 		</div>
 		<div class="content pull-right">
+			{% block body %}{% endblock %}
 		</div>
 	</div>
 	{% include 'footer.html' %}

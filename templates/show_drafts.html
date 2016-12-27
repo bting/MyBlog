@@ -1,0 +1,13 @@
+{% extends 'admin_layout.html' %}
+{% block body %}
+	<a href="{{url_for('add_draft')}}" class="btn btn-default pull-right">New Draft</a>
+	<table>
+		{% for draft in drafts %}
+		<tr>
+			<td><input type="checkbox" /></td>
+			<td>{{draft.title}}</td>
+			<td><a href="#">Edit</a> | <a href="#">Publish</a> | <a href="#">Delete</a>
+		</tr>
+		{% endfor %}
+	</table>
+{% endblock %}
