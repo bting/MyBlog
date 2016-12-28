@@ -2,11 +2,11 @@
 {% block body %}
 	<a href="{{url_for('add_draft')}}" class="btn btn-default">New Draft</a>
 	<table>
-		{% for draft in drafts %}
+		{% for post in posts %}
 		<tr>
 			<td><input type="checkbox" /></td>
-			<td>{{draft.title}}</td>
-			<td><a href="{{url_for('edit_draft', draft_id=draft.id)}}">Edit</a> | <a href="#">Delete</a>
+			<td>{{post.title}}</td>
+			<td><a href="{{url_for('edit_draft', draft_id=post.id)}}">Edit</a> | <a href="#">Delete</a>
 		</tr>
 		{% endfor %}
 	</table>

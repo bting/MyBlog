@@ -76,7 +76,7 @@ def draft_list():
     drafts = cur.fetchall()
     return render_template('show_drafts.html', drafts=drafts)
 
-@app.route('/admin/write', methods=['POST', 'GET'])
+@app.route('/admin/new_draft', methods=['POST', 'GET'])
 def add_draft():
     if not session.get('logged_in'):
         abort(401)
@@ -89,6 +89,31 @@ def add_draft():
         return redirect(url_for('show_entries'))
     return render_template('write_entry.html')
 
+@app.route('/admin/edit_draft/<int:draft_id>', methods=['POST', 'GET'])
+def edit_draft(draft_id):
+    if not session.get('logged_in'):
+        abort(401)
+    db = get_db()
+    if request.method == 'POST':
+        status = 'published' if 'publish' in request.form else 'draft'
+        query = "UPDATE entries SET title=?,text=?,status=? WHERE id=?"
+        db.execute(query, [request.form['title'], request.form['text'], status, draft_id])
+        db.commit()
+        flash('Entry was successfully updated')
+        if status == 'published':
+            return redirect(url_for('post_list'))
+        else:
+            return redirect(url_for('draft_list'))
+    cur = db.execute('SELECT id, title, text from entries where id=(?)', [draft_id])
+    entry = cur.fetchone()
+    return render_template('write_entry.html', entry=entry)
+
+@app.route('/admin/posts', methods=['GET'])
+def post_list():
+    db = get_db()
+    cur = db.execute("SELECT id, title FROM entries WHERE status='published' ORDER BY id DESC")
+    posts = cur.fetchall()
+    return render_template('show_posts.html', posts=posts)
 
 @app.route('/view/<int:post_id>', methods=['GET'])
 def view_entry(post_id):
