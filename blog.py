@@ -81,12 +81,16 @@ def add_draft():
     if not session.get('logged_in'):
         abort(401)
     if request.method == 'POST':
+        status = 'published' if 'publish' in request.form else 'draft'
         db = get_db()
-        db.execute("insert into entries (title, text, status) values (?, ?, 'draft')",
-                   [request.form['title'], request.form['text']])
+        db.execute("insert into entries (title, text, status) values (?, ?, ?)",
+                   [request.form['title'], request.form['text'], status])
         db.commit()
         flash('New entry was successfully posted')
-        return redirect(url_for('show_entries'))
+        if status == 'published':
+            return redirect(url_for('post_list'))
+        else:
+            return redirect(url_for('draft_list'))
     return render_template('write_entry.html')
 
 @app.route('/admin/edit_draft/<int:draft_id>', methods=['POST', 'GET'])
@@ -107,6 +111,16 @@ def edit_draft(draft_id):
     cur = db.execute('SELECT id, title, text from entries where id=(?)', [draft_id])
     entry = cur.fetchone()
     return render_template('write_entry.html', entry=entry)
+
+@app.route('/admin/delete_entry/<int:entry_id>', methods=['GET'])
+def delete_entry(entry_id):
+    if not session.get('logged_in'):
+        abort(401)
+    db = get_db()
+    db.execute("DELETE FROM entries WHERE id=(?)", [entry_id])
+    db.commit()
+    flash('Entry was successfully deleted')
+    return redirect(redirect_url())
 
 @app.route('/admin/posts', methods=['GET'])
 def post_list():
@@ -143,3 +157,8 @@ def logout():
     session.pop('logged_in', None)
     flash('You were logged out')
     return redirect(url_for('show_entries'))
+
+def redirect_url(default='index'):
+    return request.args.get('next') or \
+           request.referrer or \
+           url_for(default)
