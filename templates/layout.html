@@ -8,9 +8,6 @@
 <body>
     {% include 'header.html' %}
 <div class = "main">
-    {% for message in get_flashed_messages() %}
-        <div class = flash>{{message}}</div>
-    {% endfor %}
     <div class="content pull-left">
         {% block body %}{% endblock %}
     </div>
