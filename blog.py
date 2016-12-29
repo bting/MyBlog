@@ -62,7 +62,6 @@ def show_entries():
     entries = cur.fetchall()
     return render_template('show_entries.html', entries=entries)
 
-
 @app.route('/admin')
 def administration():
     if not session.get('logged_in'):
@@ -128,6 +127,54 @@ def post_list():
     cur = db.execute("SELECT id, title FROM entries WHERE status='published' ORDER BY id DESC")
     posts = cur.fetchall()
     return render_template('show_posts.html', posts=posts)
+
+@app.route('/admin/categories')
+def category_list():
+    db = get_db()
+    cur = db.execute("select id, name from categories order by id desc")
+    categories = cur.fetchall()
+    return render_template('show_categories.html', categories=categories)
+
+@app.route('/admin/new_category', methods=['POST', 'GET'])
+def add_category():
+    if not session.get('logged_in'):
+        abort(401)
+    if request.method == 'POST':
+        db = get_db()
+        db.execute("insert into categories (name) values (?)", [request.form['name']])
+        db.commit()
+        flash('New category was successfully added')
+        return redirect(url_for('category_list'))
+    return render_template('write_category.html')
+
+@app.route('/admin/delete_category/<int:category_id>', methods=['GET'])
+def delete_category(category_id):
+    if not session.get('logged_in'):
+        abort(401)
+    if category_id == 1:
+        flash('Can not delete uncategorized')
+        return redirect(url_for('category_list'))
+    db = get_db()
+    db.execute("UPDATE entries SET category_id=1 WHERE id=?", [category_id])
+    db.execute("DELETE FROM categories WHERE id=(?)", [category_id])
+    db.commit()
+    flash('Category was successfully deleted')
+    return redirect(url_for('category_list'))
+
+@app.route('/admin/edit_category/<int:category_id>', methods=['POST', 'GET'])
+def edit_category(category_id):
+    if not session.get('logged_in'):
+        abort(401)
+    db = get_db()
+    if request.method == 'POST':
+        query = "UPDATE categories SET name=? WHERE id=?"
+        db.execute(query, [request.form['name'], category_id])
+        db.commit()
+        flash("category was successfully updated")
+        return redirect(url_for('category_list'))
+    cur = db.execute('SELECT id, name FROM categories WHERE id=(?)', [category_id])
+    category = cur.fetchone()
+    return render_template('write_category.html', category=category)
 
 @app.route('/view/<int:post_id>', methods=['GET'])
 def view_entry(post_id):

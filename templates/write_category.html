@@ -1,0 +1,20 @@
+{% extends "admin_layout.html" %}
+{% block body %}
+    {% if session.logged_in %} 
+        {% if category %}
+        <form action = "{{url_for('edit_category', category_id=category.id)}}" method = post class = add-category>
+        {% else %}
+        <form action = "{{url_for('add_category')}}" method = post class = add-category>
+        {% endif %}
+           <div class="form-group">
+              <label for="title">Name</label>
+              {% if category %}
+              <input type = text class="form-control" size = 30 name="name" value="{{category.name}}"/>
+              {% else %}
+              <input type = text class="form-control" size = 30 name="name" />
+              {% endif %}
+          </div>
+          <button type=submit class="btn btn-default">Save</button>
+        </form>
+    {% endif %}
+{% endblock %}
