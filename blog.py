@@ -62,18 +62,25 @@ def show_entries():
     entries = cur.fetchall()
     return render_template('show_entries.html', entries=entries)
 
+@app.route('/categories')
+def show_categories():
+    db = get_db()
+    cur = db.execute("SELECT e.id, title, name FROM entries e, categories c WHERE c.id=e.category_id")
+    entries = cur.fetchall()
+    return render_template('show_categories.html', entries=entries)
+
 @app.route('/admin')
 def administration():
     if not session.get('logged_in'):
         abort(401)
-    return render_template('admin_main.html')
+    return render_template('admin/main.html')
 
 @app.route('/admin/drafts')
 def draft_list():
     db = get_db()
     cur = db.execute("select id, title from entries where status='draft' order by id desc")
     drafts = cur.fetchall()
-    return render_template('show_drafts.html', drafts=drafts)
+    return render_template('admin/show_drafts.html', drafts=drafts)
 
 @app.route('/admin/new_draft', methods=['POST', 'GET'])
 def add_draft():
@@ -82,15 +89,19 @@ def add_draft():
     if request.method == 'POST':
         status = 'published' if 'publish' in request.form else 'draft'
         db = get_db()
-        db.execute("insert into entries (title, text, status) values (?, ?, ?)",
-                   [request.form['title'], request.form['text'], status])
+        db.execute("insert into entries (title, text, status, category_id) values (?, ?, ?, ?)",
+                   [request.form['title'], request.form['text'], status, request.form["category"]])
         db.commit()
         flash('New entry was successfully posted')
         if status == 'published':
             return redirect(url_for('post_list'))
         else:
             return redirect(url_for('draft_list'))
-    return render_template('write_entry.html')
+    db = get_db()
+    cur = db.execute("SELECT id, name from categories")
+    categories = cur.fetchall()
+    category_id = 1
+    return render_template('admin/write_entry.html', categories=categories, category_id=category_id)
 
 @app.route('/admin/edit_draft/<int:draft_id>', methods=['POST', 'GET'])
 def edit_draft(draft_id):
@@ -99,17 +110,20 @@ def edit_draft(draft_id):
     db = get_db()
     if request.method == 'POST':
         status = 'published' if 'publish' in request.form else 'draft'
-        query = "UPDATE entries SET title=?,text=?,status=? WHERE id=?"
-        db.execute(query, [request.form['title'], request.form['text'], status, draft_id])
+        query = "UPDATE entries SET title=?,text=?,status=?, category_id=? WHERE id=?"
+        db.execute(query, [request.form['title'], request.form['text'], status, request.form["category"], draft_id])
         db.commit()
         flash('Entry was successfully updated')
         if status == 'published':
             return redirect(url_for('post_list'))
         else:
             return redirect(url_for('draft_list'))
-    cur = db.execute('SELECT id, title, text from entries where id=(?)', [draft_id])
+    cur = db.execute('SELECT id, title, text, category_id from entries where id=(?)', [draft_id])
     entry = cur.fetchone()
-    return render_template('write_entry.html', entry=entry)
+    category_id = entry["category_id"]
+    cur = db.execute("SELECT id, name from categories")
+    categories = cur.fetchall()
+    return render_template('admin/write_entry.html', entry=entry, categories=categories, category_id=category_id)
 
 @app.route('/admin/delete_entry/<int:entry_id>', methods=['GET'])
 def delete_entry(entry_id):
@@ -126,14 +140,14 @@ def post_list():
     db = get_db()
     cur = db.execute("SELECT id, title FROM entries WHERE status='published' ORDER BY id DESC")
     posts = cur.fetchall()
-    return render_template('show_posts.html', posts=posts)
+    return render_template('admin/show_posts.html', posts=posts)
 
 @app.route('/admin/categories')
 def category_list():
     db = get_db()
     cur = db.execute("select id, name from categories order by id desc")
     categories = cur.fetchall()
-    return render_template('show_categories.html', categories=categories)
+    return render_template('admin/show_categories.html', categories=categories)
 
 @app.route('/admin/new_category', methods=['POST', 'GET'])
 def add_category():
@@ -145,7 +159,7 @@ def add_category():
         db.commit()
         flash('New category was successfully added')
         return redirect(url_for('category_list'))
-    return render_template('write_category.html')
+    return render_template('admin/write_category.html')
 
 @app.route('/admin/delete_category/<int:category_id>', methods=['GET'])
 def delete_category(category_id):
@@ -174,7 +188,7 @@ def edit_category(category_id):
         return redirect(url_for('category_list'))
     cur = db.execute('SELECT id, name FROM categories WHERE id=(?)', [category_id])
     category = cur.fetchone()
-    return render_template('write_category.html', category=category)
+    return render_template('admin/write_category.html', category=category)
 
 @app.route('/view/<int:post_id>', methods=['GET'])
 def view_entry(post_id):
