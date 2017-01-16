@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+{% block body %}
+    {% for cate, entries in categories.iteritems() %}
+    <h3>{{cate}}</h3>
+    <ul class="entries">
+        {% for entry in entries %}
+        <li><a href="{{url_for('view_entry', post_id=entry.id)}}">{{entry.title}}</a></li>
+        {% endfor %}
+    </ul>
+    {% endfor %}
+{% endblock %}

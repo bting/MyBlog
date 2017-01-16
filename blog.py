@@ -65,9 +65,14 @@ def show_entries():
 @app.route('/categories')
 def show_categories():
     db = get_db()
-    cur = db.execute("SELECT e.id, title, name FROM entries e, categories c WHERE c.id=e.category_id")
+    cur = db.execute("SELECT e.id, title, name as category FROM entries e, categories c WHERE e.category_id=c.id order by e.id desc")
     entries = cur.fetchall()
-    return render_template('show_categories.html', entries=entries)
+    categories = {}
+    for e in entries:
+        if e['category'] not in categories:
+            categories[e['category']] = []
+        categories[e['category']].append(e)
+    return render_template('show_categories.html', categories=categories)
 
 @app.route('/admin')
 def administration():
