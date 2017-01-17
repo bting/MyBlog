@@ -87,16 +87,44 @@ def draft_list():
     drafts = cur.fetchall()
     return render_template('admin/show_drafts.html', drafts=drafts)
 
+def _insert_tag_if_not_exist(tag):
+    db = get_db()
+    db.execute("INSERT OR IGNORE INTO tags (name) VALUES (?)", [tag])
+    db.commit()
+
+def _add_entry_tag(entry_id, tag):
+    _insert_tag_if_not_exist(tag)
+    db = get_db()
+    db.execute("INSERT INTO entry_tag(entry_id, tag_id) SELECT (?), id FROM tags WHERE name=(?)", [entry_id, tag])
+    db.commit()
+
+def _remove_entry_tag(entry_id, tag):
+    db = get_db()
+    db.execute("DELETE FROM entry_tag WHERE entry_id=(?) AND tag_id IN (SELECT id FROM tags WHERE name=(?))", [entry_id, tag])
+    db.commit()
+
+def _load_tags(entry_id):
+    db = get_db()
+    cur = db.execute("SELECT name FROM entry_tag et, tags t WHERE t.id=et.tag_id AND et.entry_id=(?)", [entry_id])
+    tags = cur.fetchall()
+    return tags
+
 @app.route('/admin/new_draft', methods=['POST', 'GET'])
 def add_draft():
     if not session.get('logged_in'):
         abort(401)
     if request.method == 'POST':
         status = 'published' if 'publish' in request.form else 'draft'
+        #TODO: Wrap the following queries in a database transaction
         db = get_db()
         db.execute("insert into entries (title, text, status, category_id) values (?, ?, ?, ?)",
                    [request.form['title'], request.form['text'], status, request.form["category"]])
         db.commit()
+        cur = db.execute("SELECT last_insert_rowid() as id")
+        id= cur.fetchone()
+        tags = [x.strip() for x in request.form['tags'].split(',')]
+        for tag in tags:
+            _add_entry_tag(id['id'], tag)
         flash('New entry was successfully posted')
         if status == 'published':
             return redirect(url_for('post_list'))
@@ -108,16 +136,30 @@ def add_draft():
     category_id = 1
     return render_template('admin/write_entry.html', categories=categories, category_id=category_id)
 
+def _update_tags(entry_id, old_tags, new_tags):
+    old_tag_set = set(old_tags)
+    for tag in new_tags:
+        if tag not in old_tag_set:
+            _add_entry_tag(entry_id, tag)
+    new_tag_set = set(new_tags)
+    for tag in old_tags:
+        if tag not in new_tag_set:
+            _remove_entry_tag(entry_id, tag)
+
 @app.route('/admin/edit_draft/<int:draft_id>', methods=['POST', 'GET'])
 def edit_draft(draft_id):
     if not session.get('logged_in'):
         abort(401)
     db = get_db()
+    cur = db.execute("SELECT name FROM entry_tag et, tags t WHERE et.entry_id=(?) AND et.tag_id=t.id", [draft_id])
+    old_tags = [x['name'] for x in cur.fetchall()]
     if request.method == 'POST':
         status = 'published' if 'publish' in request.form else 'draft'
         query = "UPDATE entries SET title=?,text=?,status=?, category_id=? WHERE id=?"
         db.execute(query, [request.form['title'], request.form['text'], status, request.form["category"], draft_id])
         db.commit()
+        new_tags = [x.strip() for x in request.form['tags'].split(',')]
+        _update_tags(draft_id, old_tags, new_tags)
         flash('Entry was successfully updated')
         if status == 'published':
             return redirect(url_for('post_list'))
@@ -128,7 +170,7 @@ def edit_draft(draft_id):
     category_id = entry["category_id"]
     cur = db.execute("SELECT id, name from categories")
     categories = cur.fetchall()
-    return render_template('admin/write_entry.html', entry=entry, categories=categories, category_id=category_id)
+    return render_template('admin/write_entry.html', entry=entry, categories=categories, category_id=category_id, tags=old_tags)
 
 @app.route('/admin/delete_entry/<int:entry_id>', methods=['GET'])
 def delete_entry(entry_id):
@@ -194,6 +236,55 @@ def edit_category(category_id):
     cur = db.execute('SELECT id, name FROM categories WHERE id=(?)', [category_id])
     category = cur.fetchone()
     return render_template('admin/write_category.html', category=category)
+
+@app.route('/admin/tags')
+def tag_list():
+    if not session.get('logged_in'):
+        abort(401)
+    db = get_db()
+    cur = db.execute("SELECT id, name FROM tags")
+    tags = cur.fetchall()
+    return render_template('admin/show_tags.html', tags=tags)
+
+def _add_tag(name):
+    db = get_db()
+    db.execute('INSERT INTO tags (name) VALUES (?)', [name])
+    db.commit()
+
+@app.route('/admin/new_tag', methods=['POST', 'GET'])
+def add_tag():
+    if not session.get('logged_in'):
+        abort(401)
+    if request.method == 'POST':
+        _add_tag(request.form['name'])
+        flash('New tag was successfully added')
+        return redirect(url_for('tag_list'))
+    return render_template('admin/write_tag.html')
+
+@app.route('/admin/delete_tag/<int:tag_id>', methods=['GET'])
+def delete_tag(tag_id):
+    if not session.get('logged_in'):
+        abort(401)
+    db = get_db()
+    db.execute('DELETE FROM tags WHERE id=(?)', [tag_id])
+    db.commit()
+    flash('Tag was successfully deleted')
+    return redirect(url_for('tag_list'))
+
+@app.route('/admin/edit_tag/<int:tag_id>', methods=['POST', 'GET'])
+def edit_tag(tag_id):
+    if not session.get('logged_in'):
+        abort(401)
+    db = get_db()
+    if request.method == 'POST':
+        query = 'UPDATE tags SET name=? WHERE id=?'
+        db.execute(query, [request.form['name'], tag_id])
+        db.commit()
+        flash("Tag was successfully updated")
+        return redirect(url_for('tag_list'))
+    cur = db.execute('SELECT id, name FROM tags WHERE id=(?)', [tag_id])
+    tag = cur.fetchone()
+    return render_template('admin/write_tag.html', tag=tag)
 
 @app.route('/view/<int:post_id>', methods=['GET'])
 def view_entry(post_id):

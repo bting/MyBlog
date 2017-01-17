@@ -1,0 +1,13 @@
+{% extends 'admin/layout.html' %}
+{% block body %}
+	<a href="{{url_for('add_tag')}}" class="btn btn-default">New Tag</a>
+	<table>
+		{% for tag in tags %}
+		<tr>
+			<td><input type="checkbox" /></td>
+			<td>{{tag.name}}</td>
+			<td><a href="{{url_for('edit_tag', tag_id=tag.id)}}">Edit</a> | <a href="{{url_for('delete_tag', tag_id=tag.id)}}">Delete</a>
+		</tr>
+		{% endfor %}
+	</table>
+{% endblock %}

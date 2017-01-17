@@ -54,6 +54,10 @@
                   {% endfor %}
               </select>
           </div>
+          <div class="form-group">
+              <label for="tags">Tags</label>
+              <input type="text" name="tags" class="form-control" value="{{ tags|join(',') }}"/>
+          </div>
           <button type=submit class="btn btn-default">Save</button>
         </form>
     {% endif %}
