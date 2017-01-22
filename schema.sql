@@ -29,3 +29,17 @@ CREATE TABLE tags (
     id integer PRIMARY KEY autoincrement,
     name varchar(16) NOT NULL UNIQUE
 );
+
+DROP TABLE IF EXISTS comments;
+CREATE TABLE comments (
+    id integer PRIMARY KEY autoincrement,
+    author varchar(32) NOT NULL,
+    email varchar(32) NOT NULL,
+    content text NOT NULL,
+    status varchar(16) NOT NULL,
+    created_at integer NOT NULL,
+    entry_id integer NOT NULL,
+    parent integer,
+    root integer,
+    FOREIGN KEY(entry_id) REFERENCES entries(id)
+);

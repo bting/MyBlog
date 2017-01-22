@@ -2,7 +2,7 @@
 import os
 import sqlite3
 from flask import Flask, request, session, g, redirect, url_for, abort, \
-    render_template, flash
+    render_template, flash, jsonify
 
 # create our little application
 app = Flask(__name__)
@@ -286,13 +286,33 @@ def edit_tag(tag_id):
     tag = cur.fetchone()
     return render_template('admin/write_tag.html', tag=tag)
 
-@app.route('/view/<int:post_id>', methods=['GET'])
-def view_entry(post_id):
+@app.route('/view/<int:entry_id>', methods=['GET'])
+def view_entry(entry_id):
     db = get_db()
-    cur = db.execute('select title, text from entries where id=(?)', [post_id])
+    cur = db.execute('select title, text from entries where id=(?)', [entry_id])
     entry = cur.fetchone()
     return render_template('show_entry.html', entry=entry)
 
+@app.route('/api/posts/<int:entry_id>/comments', methods=['POST', 'GET'])
+def comments(entry_id):
+    db = get_db()
+    if request.method == 'POST':
+        try:
+            db.execute("INSERT INTO comments (author, email, content, status, created_at, entry_id, parent, root) VALUES (?,?,?,'created',strftime('%s','now'),?,?,?)",
+                    [request.form['author'], request.form['email'], request.form['content'], request.form['entry_id'], request.form['parent'], request.form['root']])
+            db.commit()
+            return "successful"
+        except Exception as e:
+            print "failed to insert"
+            resp = jsonify({"message": "failed", 'error': e.message})
+            resp.status_code = 500
+            return resp
+    if request.method == 'GET':
+        attrs = ['id', 'author', 'email', 'content', 'created_at', 'parent', 'root']
+        field_str = ','.join(attrs)
+        cur = db.execute("SELECT "+field_str+" FROM comments WHERE status='approved' AND entry_id=?", [entry_id])
+        comments = [dict(x) for x in cur.fetchall()]
+        return jsonify(comments)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
